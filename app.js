@@ -26,40 +26,12 @@ const effectLibrary = [
   {
     id: "rgbShift",
     name: "Décalage RGB",
-    params: {
-      intensity: { value: 0.35, min: 0, max: 1, step: 0.01 },
-      offset: { value: 0.004, min: 0.001, max: 0.02, step: 0.001 }
-    }
+    params: { intensity: 0.35, offset: 0.004 }
   },
   {
     id: "digitalNoise",
     name: "Bruit numérique",
-    params: {
-      intensity: { value: 0.3, min: 0, max: 1, step: 0.01 },
-      grain: { value: 1.2, min: 0.2, max: 3, step: 0.1 }
-    }
-  },
-  {
-    id: "timeEcho",
-    name: "Écho temporel",
-    params: {
-      mix: { value: 0.6, min: 0, max: 1, step: 0.01 }
-    }
-  },
-  {
-    id: "trail",
-    name: "Traînées",
-    params: {
-      mix: { value: 0.55, min: 0, max: 1, step: 0.01 }
-    }
-  },
-  {
-    id: "colorShift",
-    name: "Rotation de teinte",
-    params: {
-      hue: { value: 0.2, min: 0, max: 1, step: 0.01 },
-      saturation: { value: 0.2, min: -1, max: 1, step: 0.01 }
-    }
+    params: { intensity: 0.3, grain: 1.2 }
   },
   {
     id: "posterize",
