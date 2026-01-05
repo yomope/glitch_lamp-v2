@@ -26,12 +26,48 @@ const effectLibrary = [
   {
     id: "rgbShift",
     name: "Décalage RGB",
-    params: { intensity: 0.35, offset: 0.004 }
+    params: {
+      intensity: { value: 0.35, min: 0, max: 1, step: 0.01 },
+      offset: { value: 0.004, min: 0.001, max: 0.02, step: 0.001 }
+    }
   },
   {
     id: "digitalNoise",
     name: "Bruit numérique",
-    params: { intensity: 0.3, grain: 1.2 }
+    params: {
+      intensity: { value: 0.3, min: 0, max: 1, step: 0.01 },
+      grain: { value: 1.2, min: 0.2, max: 3, step: 0.1 }
+    }
+  },
+  {
+    id: "timeEcho",
+    name: "Écho temporel",
+    params: {
+      mix: { value: 0.6, min: 0, max: 1, step: 0.01 }
+    }
+  },
+  {
+    id: "datamosh",
+    name: "Datamoshing",
+    params: {
+      strength: { value: 0.65, min: 0, max: 1, step: 0.01 },
+      smear: { value: 0.4, min: 0, max: 1, step: 0.01 }
+    }
+  },
+  {
+    id: "trail",
+    name: "Traînées",
+    params: {
+      mix: { value: 0.55, min: 0, max: 1, step: 0.01 }
+    }
+  },
+  {
+    id: "colorShift",
+    name: "Rotation de teinte",
+    params: {
+      hue: { value: 0.2, min: 0, max: 1, step: 0.01 },
+      saturation: { value: 0.2, min: -1, max: 1, step: 0.01 }
+    }
   },
   {
     id: "posterize",
@@ -91,6 +127,7 @@ const state = {
     makeEffect("digitalNoise"),
     makeEffect("pixelate"),
     makeEffect("colorShift"),
+    makeEffect("datamosh"),
     makeEffect("timeEcho")
   ],
   mode: "manual",
@@ -541,6 +578,26 @@ const fragmentShaders = {
       gl_FragColor = mix(current, delayed, mixAmount);
     }
   `,
+  datamosh: `
+    uniform sampler2D inputTexture;
+    uniform sampler2D historyTexture;
+    uniform float strength;
+    uniform float smear;
+    uniform float time;
+    varying vec2 vUv;
+    float rand(vec2 co) {
+      return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+    void main() {
+      float noise = rand(vec2(vUv.y * 80.0, time * 0.5));
+      float shift = (noise - 0.5) * strength * 0.1;
+      vec2 moshedUv = vUv + vec2(shift, noise * smear * 0.02);
+      vec3 current = texture2D(inputTexture, vUv).rgb;
+      vec3 history = texture2D(historyTexture, moshedUv).rgb;
+      vec3 result = mix(current, history, strength);
+      gl_FragColor = vec4(result, 1.0);
+    }
+  `,
   ascii: `
     uniform sampler2D inputTexture;
     uniform vec2 resolution;
@@ -612,7 +669,9 @@ function createEffectMaterial(effect) {
     amount: { value: effect.params.amount ?? 0.5 },
     scale: { value: effect.params.scale ?? 0.6 },
     size: { value: effect.params.size ?? 0.015 },
-    jitter: { value: effect.params.jitter ?? 0.35 }
+    jitter: { value: effect.params.jitter ?? 0.35 },
+    strength: { value: effect.params.strength ?? 0.65 },
+    smear: { value: effect.params.smear ?? 0.4 }
   };
 
   return new THREE.ShaderMaterial({
@@ -661,6 +720,8 @@ function renderFrame(time) {
     material.uniforms.scale.value = effect.params.scale ?? 0.6;
     material.uniforms.size.value = effect.params.size ?? 0.015;
     material.uniforms.jitter.value = effect.params.jitter ?? 0.35;
+    material.uniforms.strength.value = effect.params.strength ?? 0.65;
+    material.uniforms.smear.value = effect.params.smear ?? 0.4;
 
     quad.material = material;
     renderer.setRenderTarget(renderTarget);
