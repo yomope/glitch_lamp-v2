@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glitch Lamp V2</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="viewer" aria-label="Flux vidéo immersif">
+        <canvas id="glitch-canvas"></canvas>
+        <div class="viewer-overlay">
+          <div class="status-pill" id="status-pill">Flux en cours • Mode manuel</div>
+          <div class="stats" id="stats">FPS: -- | Effets: 0</div>
+        </div>
+      </section>
+
+      <aside class="panel" aria-label="Configuration des effets">
+        <header class="panel-header">
+          <h1>Chaîne d'effets</h1>
+          <div class="mode-switch">
+            <label for="mode-select">Mode</label>
+            <select id="mode-select">
+              <option value="manual">Manuel</option>
+              <option value="preset-random">Preset aléatoire</option>
+              <option value="freestyle">Freestyle</option>
+            </select>
+          </div>
+        </header>
+
+        <div class="panel-tabs">
+          <button class="tab active" data-tab="list">Liste</button>
+          <button class="tab" data-tab="canvas">Canvas</button>
+          <button class="tab" data-tab="presets">Presets</button>
+        </div>
+
+        <section class="tab-content active" id="tab-list">
+          <div class="toolbar">
+            <select id="effect-library"></select>
+            <button id="add-effect">Ajouter</button>
+            <button id="randomize-chain">Générer aléatoire</button>
+          </div>
+          <div id="effects-list" class="effects-list" aria-live="polite"></div>
+        </section>
+
+        <section class="tab-content" id="tab-canvas">
+          <div class="canvas-toolbar">
+            <button id="reset-view">Réinitialiser vue</button>
+            <button id="duplicate-chain">Dupliquer la chaîne</button>
+          </div>
+          <div class="node-canvas" id="node-canvas" aria-label="Représentation de la chaîne"></div>
+        </section>
+
+        <section class="tab-content" id="tab-presets">
+          <div class="preset-actions">
+            <input id="preset-name" type="text" placeholder="Nom du preset" />
+            <button id="save-preset">Sauvegarder</button>
+          </div>
+          <div class="preset-row">
+            <label for="preset-select">Charger un preset</label>
+            <select id="preset-select"></select>
+            <button id="load-preset">Charger</button>
+            <button id="delete-preset">Supprimer</button>
+          </div>
+          <div class="preset-row">
+            <button id="export-preset">Exporter</button>
+            <button id="import-preset">Importer</button>
+            <input id="import-input" type="file" accept="application/json" hidden />
+          </div>
+        </section>
+
+        <section class="playback">
+          <h2>Contrôles de lecture</h2>
+          <div class="control-row">
+            <label for="speed">Vitesse</label>
+            <input id="speed" type="range" min="0.25" max="2" step="0.05" value="1" />
+            <span id="speed-value">1.0x</span>
+          </div>
+          <div class="control-row">
+            <button id="toggle-play">Pause</button>
+            <button id="sync">Synchroniser</button>
+          </div>
+        </section>
+
+        <section class="indicators">
+          <h2>Indicateurs</h2>
+          <div class="indicator-row">
+            <span>Génération</span>
+            <strong id="generation-status">En cours</strong>
+          </div>
+          <div class="indicator-row">
+            <span>Téléchargement</span>
+            <strong id="download-status">100%</strong>
+          </div>
+          <div class="indicator-row">
+            <span>Streaming live</span>
+            <strong id="stream-status">En direct</strong>
+          </div>
+          <details class="logs">
+            <summary>Logs d'activité</summary>
+            <div id="logs"></div>
+          </details>
+        </section>
+
+        <section class="batch">
+          <h2>Mode batch / rotation</h2>
+          <div class="control-row">
+            <label for="batch-toggle">Rotation</label>
+            <input id="batch-toggle" type="checkbox" />
+            <span id="batch-status">Désactivé</span>
+          </div>
+          <div class="control-row">
+            <label for="batch-interval">Intervalle</label>
+            <input id="batch-interval" type="range" min="10" max="120" step="5" value="30" />
+            <span id="batch-interval-value">30s</span>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
