@@ -26,82 +26,27 @@ const effectLibrary = [
   {
     id: "rgbShift",
     name: "Décalage RGB",
-    params: {
-      intensity: { value: 0.35, min: 0, max: 1, step: 0.01 },
-      offset: { value: 0.004, min: 0.001, max: 0.02, step: 0.001 }
-    }
+    params: { intensity: 0.35, offset: 0.004 }
   },
   {
     id: "digitalNoise",
     name: "Bruit numérique",
-    params: {
-      intensity: { value: 0.3, min: 0, max: 1, step: 0.01 },
-      grain: { value: 1.2, min: 0.2, max: 3, step: 0.1 }
-    }
-  },
-  {
-    id: "timeEcho",
-    name: "Écho temporel",
-    params: {
-      mix: { value: 0.6, min: 0, max: 1, step: 0.01 }
-    }
-  },
-  {
-    id: "trail",
-    name: "Traînées",
-    params: {
-      mix: { value: 0.55, min: 0, max: 1, step: 0.01 }
-    }
-  },
-  {
-    id: "colorShift",
-    name: "Rotation de teinte",
-    params: {
-      hue: { value: 0.2, min: 0, max: 1, step: 0.01 },
-      saturation: { value: 0.2, min: -1, max: 1, step: 0.01 }
-    }
+    params: { intensity: 0.3, grain: 1.2 }
   },
   {
     id: "posterize",
     name: "Posterisation",
-    params: {
-      levels: { value: 6, min: 2, max: 12, step: 1 }
-    }
+    params: { levels: 6 }
   },
   {
     id: "solarize",
     name: "Solarisation",
-    params: {
-      threshold: { value: 0.55, min: 0, max: 1, step: 0.01 }
-    }
+    params: { threshold: 0.55 }
   },
   {
-    id: "blur",
-    name: "Flou cinétique",
-    params: {
-      amount: { value: 0.6, min: 0, max: 2, step: 0.05 }
-    }
-  },
-  {
-    id: "sharpen",
-    name: "Netteté",
-    params: {
-      amount: { value: 0.5, min: 0, max: 2, step: 0.05 }
-    }
-  },
-  {
-    id: "ascii",
-    name: "Rendu ASCII",
-    params: {
-      scale: { value: 0.6, min: 0.2, max: 1, step: 0.05 }
-    }
-  },
-  {
-    id: "doubleExposure",
-    name: "Double exposition",
-    params: {
-      mix: { value: 0.45, min: 0, max: 1, step: 0.01 }
-    }
+    id: "trail",
+    name: "Traînées",
+    params: { mix: 0.6 }
   }
 ];
 
@@ -124,14 +69,11 @@ const state = {
 
 function makeEffect(id) {
   const blueprint = effectLibrary.find((effect) => effect.id === id);
-  const params = Object.fromEntries(
-    Object.entries(blueprint?.params ?? {}).map(([key, meta]) => [key, meta.value])
-  );
   return {
     id: `${id}-${crypto.randomUUID()}`,
     type: id,
     name: blueprint?.name ?? id,
-    params
+    params: { ...blueprint?.params }
   };
 }
 
@@ -147,7 +89,6 @@ function populateLibrary() {
 function renderEffectsList() {
   effectsList.innerHTML = "";
   state.chain.forEach((effect, index) => {
-    const meta = effectLibrary.find((item) => item.id === effect.type)?.params ?? {};
     const card = document.createElement("div");
     card.className = "effect-card";
 
@@ -185,16 +126,24 @@ function renderEffectsList() {
     params.className = "effect-params";
 
     Object.entries(effect.params).forEach(([key, value]) => {
-      const paramMeta = meta[key] ?? { min: 0, max: 1, step: 0.01 };
       const label = document.createElement("label");
       label.textContent = key;
 
       const input = document.createElement("input");
       input.type = "range";
-      input.min = paramMeta.min;
-      input.max = paramMeta.max;
-      input.step = paramMeta.step;
+      input.min = 0;
+      input.max = 1;
+      input.step = 0.01;
       input.value = value;
+      if (key === "levels") {
+        input.min = 2;
+        input.max = 10;
+        input.step = 1;
+      }
+      if (key === "grain") {
+        input.min = 0.1;
+        input.max = 2;
+      }
       label.appendChild(input);
       input.addEventListener("input", () => {
         effect.params[key] = Number(input.value);
@@ -236,18 +185,8 @@ function randomizeChain() {
   const shuffled = [...effectLibrary].sort(() => Math.random() - 0.5);
   state.chain = shuffled.slice(0, count).map((effect) => makeEffect(effect.id));
   state.chain.forEach((effect) => {
-    const meta = effectLibrary.find((item) => item.id === effect.type)?.params ?? {};
     Object.keys(effect.params).forEach((key) => {
-      const paramMeta = meta[key];
-      if (!paramMeta) {
-        return;
-      }
-      const min = paramMeta.min ?? 0;
-      const max = paramMeta.max ?? 1;
-      const value = Math.random() * (max - min) + min;
-      const stepped =
-        paramMeta.step && paramMeta.step >= 1 ? Math.round(value) : Number(value.toFixed(2));
-      effect.params[key] = stepped;
+      effect.params[key] = Number((Math.random() * 0.9 + 0.1).toFixed(2));
     });
   });
   logMessage("Nouvelle chaîne générée automatiquement.");
@@ -391,7 +330,16 @@ function updateMode(mode) {
 
 function handleModeChange() {
   updateMode(modeSelect.value);
-  applyModeForClip();
+  if (modeSelect.value === "preset-random") {
+    const presetNames = Object.keys(state.presets);
+    if (presetNames.length) {
+      const pick = presetNames[Math.floor(Math.random() * presetNames.length)];
+      loadPreset(pick);
+    }
+  }
+  if (modeSelect.value === "freestyle") {
+    randomizeChain();
+  }
 }
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -404,7 +352,7 @@ const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
 const video = document.createElement("video");
 video.src = clips[state.currentClipIndex];
 video.crossOrigin = "anonymous";
-video.loop = false;
+video.loop = true;
 video.muted = true;
 video.playsInline = true;
 
@@ -420,7 +368,6 @@ scene.add(quad);
 
 const targetA = new THREE.WebGLRenderTarget(1, 1);
 const targetB = new THREE.WebGLRenderTarget(1, 1);
-const historyTarget = new THREE.WebGLRenderTarget(1, 1);
 
 const effectMaterials = new Map();
 
@@ -429,7 +376,6 @@ function resize() {
   renderer.setSize(clientWidth, clientHeight, false);
   targetA.setSize(clientWidth, clientHeight);
   targetB.setSize(clientWidth, clientHeight);
-  historyTarget.setSize(clientWidth, clientHeight);
   updateNodeCanvas();
 }
 
@@ -484,105 +430,15 @@ const fragmentShaders = {
       gl_FragColor = vec4(result, 1.0);
     }
   `,
-  colorShift: `
-    uniform sampler2D inputTexture;
-    uniform float hue;
-    uniform float saturation;
-    varying vec2 vUv;
-    mat3 hueRotation(float angle) {
-      float s = sin(angle);
-      float c = cos(angle);
-      return mat3(
-        vec3(0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928),
-        vec3(0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.14, 0.072 - c * 0.072 - s * 0.283),
-        vec3(0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072)
-      );
-    }
-    void main() {
-      vec3 color = texture2D(inputTexture, vUv).rgb;
-      float angle = hue * 6.28318;
-      color = hueRotation(angle) * color;
-      float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-      color = mix(vec3(luma), color, 1.0 + saturation);
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
-  blur: `
-    uniform sampler2D inputTexture;
-    uniform vec2 resolution;
-    uniform float amount;
-    varying vec2 vUv;
-    void main() {
-      vec2 texel = vec2(1.0) / resolution;
-      vec3 color = texture2D(inputTexture, vUv).rgb * 0.36;
-      color += texture2D(inputTexture, vUv + texel * amount).rgb * 0.16;
-      color += texture2D(inputTexture, vUv - texel * amount).rgb * 0.16;
-      color += texture2D(inputTexture, vUv + vec2(texel.x, -texel.y) * amount).rgb * 0.16;
-      color += texture2D(inputTexture, vUv + vec2(-texel.x, texel.y) * amount).rgb * 0.16;
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
-  sharpen: `
-    uniform sampler2D inputTexture;
-    uniform vec2 resolution;
-    uniform float amount;
-    varying vec2 vUv;
-    void main() {
-      vec2 texel = vec2(1.0) / resolution;
-      vec3 color = texture2D(inputTexture, vUv).rgb * (1.0 + amount);
-      color -= texture2D(inputTexture, vUv + vec2(texel.x, 0.0)).rgb * (amount * 0.25);
-      color -= texture2D(inputTexture, vUv - vec2(texel.x, 0.0)).rgb * (amount * 0.25);
-      color -= texture2D(inputTexture, vUv + vec2(0.0, texel.y)).rgb * (amount * 0.25);
-      color -= texture2D(inputTexture, vUv - vec2(0.0, texel.y)).rgb * (amount * 0.25);
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
   trail: `
     uniform sampler2D inputTexture;
-    uniform sampler2D historyTexture;
+    uniform sampler2D feedbackTexture;
     uniform float mixAmount;
     varying vec2 vUv;
     void main() {
       vec4 current = texture2D(inputTexture, vUv);
-      vec4 previous = texture2D(historyTexture, vUv);
+      vec4 previous = texture2D(feedbackTexture, vUv);
       gl_FragColor = mix(current, previous, mixAmount);
-    }
-  `,
-  timeEcho: `
-    uniform sampler2D inputTexture;
-    uniform sampler2D historyTexture;
-    uniform float mixAmount;
-    varying vec2 vUv;
-    void main() {
-      vec4 current = texture2D(inputTexture, vUv);
-      vec4 delayed = texture2D(historyTexture, vUv);
-      gl_FragColor = mix(current, delayed, mixAmount);
-    }
-  `,
-  ascii: `
-    uniform sampler2D inputTexture;
-    uniform vec2 resolution;
-    uniform float scale;
-    varying vec2 vUv;
-    void main() {
-      float blocks = mix(20.0, 80.0, scale);
-      vec2 grid = floor(vUv * blocks) / blocks;
-      vec3 color = texture2D(inputTexture, grid).rgb;
-      float luma = dot(color, vec3(0.299, 0.587, 0.114));
-      float stepValue = step(0.5, luma);
-      vec3 finalColor = mix(vec3(0.05), color, stepValue);
-      gl_FragColor = vec4(finalColor, 1.0);
-    }
-  `,
-  doubleExposure: `
-    uniform sampler2D inputTexture;
-    uniform sampler2D historyTexture;
-    uniform float mixAmount;
-    varying vec2 vUv;
-    void main() {
-      vec3 current = texture2D(inputTexture, vUv).rgb;
-      vec3 ghost = texture2D(historyTexture, vUv).rgb;
-      gl_FragColor = vec4(mix(current, ghost, mixAmount), 1.0);
     }
   `
 };
@@ -598,7 +454,7 @@ function createEffectMaterial(effect) {
 
   const uniforms = {
     inputTexture: { value: null },
-    historyTexture: { value: null },
+    feedbackTexture: { value: null },
     resolution: { value: new THREE.Vector2() },
     time: { value: 0 },
     intensity: { value: effect.params.intensity ?? 0.3 },
@@ -606,11 +462,7 @@ function createEffectMaterial(effect) {
     grain: { value: effect.params.grain ?? 1 },
     levels: { value: effect.params.levels ?? 6 },
     threshold: { value: effect.params.threshold ?? 0.5 },
-    mixAmount: { value: effect.params.mix ?? 0.5 },
-    hue: { value: effect.params.hue ?? 0.2 },
-    saturation: { value: effect.params.saturation ?? 0 },
-    amount: { value: effect.params.amount ?? 0.5 },
-    scale: { value: effect.params.scale ?? 0.6 }
+    mixAmount: { value: effect.params.mix ?? 0.5 }
   };
 
   return new THREE.ShaderMaterial({
@@ -637,14 +489,14 @@ function renderFrame(time) {
   }
 
   let inputTexture = videoTexture;
-  const historyTexture = historyTarget.texture;
+  let feedbackTexture = null;
   let renderTarget = targetA;
   let outputTarget = targetB;
 
   state.chain.forEach((effect) => {
     const material = getMaterial(effect);
     material.uniforms.inputTexture.value = inputTexture;
-    material.uniforms.historyTexture.value = historyTexture;
+    material.uniforms.feedbackTexture.value = feedbackTexture ?? inputTexture;
     material.uniforms.resolution.value.set(targetA.width, targetA.height);
     material.uniforms.time.value = time * 0.001;
     material.uniforms.intensity.value = effect.params.intensity ?? 0.3;
@@ -653,16 +505,13 @@ function renderFrame(time) {
     material.uniforms.levels.value = effect.params.levels ?? 6;
     material.uniforms.threshold.value = effect.params.threshold ?? 0.55;
     material.uniforms.mixAmount.value = effect.params.mix ?? 0.6;
-    material.uniforms.hue.value = effect.params.hue ?? 0.2;
-    material.uniforms.saturation.value = effect.params.saturation ?? 0;
-    material.uniforms.amount.value = effect.params.amount ?? 0.5;
-    material.uniforms.scale.value = effect.params.scale ?? 0.6;
 
     quad.material = material;
     renderer.setRenderTarget(renderTarget);
     renderer.render(scene, camera);
     renderer.setRenderTarget(null);
 
+    feedbackTexture = renderTarget.texture;
     inputTexture = renderTarget.texture;
     [renderTarget, outputTarget] = [outputTarget, renderTarget];
   });
@@ -671,8 +520,6 @@ function renderFrame(time) {
   if (state.chain.length) {
     finalMaterial.map = inputTexture;
   }
-  renderer.setRenderTarget(historyTarget);
-  renderer.render(scene, camera);
   renderer.setRenderTarget(null);
   renderer.render(scene, camera);
 
@@ -683,42 +530,26 @@ function updateStreamStatus(status) {
   streamStatus.textContent = status;
 }
 
-function applyModeForClip() {
-  if (state.mode === "preset-random") {
-    const presetNames = Object.keys(state.presets);
-    if (presetNames.length) {
-      const pick = presetNames[Math.floor(Math.random() * presetNames.length)];
-      loadPreset(pick);
-    }
-  }
-  if (state.mode === "freestyle") {
-    randomizeChain();
-  }
-}
-
 function nextClip() {
   state.currentClipIndex = (state.currentClipIndex + 1) % clips.length;
   video.src = clips[state.currentClipIndex];
   video.play();
   logMessage("Clip suivant chargé.");
-  applyModeForClip();
-}
-
-function restartBatchTimer() {
-  clearInterval(state.batchTimer);
-  state.batchTimer = setInterval(nextClip, state.rotationInterval);
 }
 
 function startBatchRotation() {
   state.batchEnabled = true;
   batchStatus.textContent = "Actif";
-  restartBatchTimer();
+  video.loop = false;
+  clearInterval(state.batchTimer);
+  state.batchTimer = setInterval(nextClip, state.rotationInterval);
   logMessage("Rotation batch activée.");
 }
 
 function stopBatchRotation() {
   state.batchEnabled = false;
   batchStatus.textContent = "Désactivé";
+  video.loop = true;
   clearInterval(state.batchTimer);
   state.batchTimer = null;
   logMessage("Rotation batch désactivée.");
@@ -806,7 +637,7 @@ function bindEvents() {
     state.rotationInterval = seconds * 1000;
     batchIntervalValue.textContent = `${seconds}s`;
     if (state.batchEnabled) {
-      restartBatchTimer();
+      startBatchRotation();
     }
   });
 
@@ -826,9 +657,8 @@ video.addEventListener("canplay", () => {
 });
 
 video.addEventListener("ended", () => {
-  nextClip();
   if (state.batchEnabled) {
-    restartBatchTimer();
+    nextClip();
   }
 });
 
